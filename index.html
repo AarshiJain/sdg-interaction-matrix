@@ -189,7 +189,7 @@ table.mini{border-collapse:collapse;font:400 12.5px var(--f-mono);font-variant-n
     </div>
     <div class="stats" id="stats"></div>
     <div class="scroller"><table class="mx" id="mx"></table></div>
-    <p class="hint">Click a square to mark an interaction between the row agent and the column agent. The mirror square fills in automatically. With a mouse, drag across squares to mark several at once. Triangle colors follow the columns on the right of the dark diagonal, and the left side mirrors them.</p>
+    <p class="hint">Click a square to mark an interaction between the row agent and the column agent. The mirror square fills in automatically. With a mouse, drag across squares to mark several at once. Each triangle takes the color of its column's SDG, so every column keeps one color from top to bottom. The two sides of the diagonal mirror each other in position.</p>
   </section>
 
   <section class="summaries" aria-label="Summaries">
@@ -337,7 +337,7 @@ function renderMatrix(){
   for (let i=0;i<N;i++){ const g=grp(i), nm=agentName(i);
     h += `<tr class="${i%PER===0&&i>0?"gs":""}"><td class="s0 steep" id="st-${i}">${state.agents[i].steep||"·"}</td><td class="s1"><span class="bar" style="background:${gColor(g)}"></span></td><td class="s2 pi">${g===0?"P":"I"}</td>`;
     h += `<th class="s3 rowh${state.agents[i].name.trim()?"":" empty"}" id="rh-${i}" scope="row" title="${esc(nm)}">${esc(nm)}</th>`;
-    for (let j=0;j<N;j++){ h += `<td class="c${j%PER===0?" gl":""}${i===j?" d":""}${j>i?" up":""}${M[i*N+j]?" on":""}" data-i="${i}" data-j="${j}" style="--tc:${colColor[Math.max(i,j)]}"><span></span></td>`; }
+    for (let j=0;j<N;j++){ h += `<td class="c${j%PER===0?" gl":""}${i===j?" d":""}${j>i?" up":""}${M[i*N+j]?" on":""}" data-i="${i}" data-j="${j}" style="--tc:${colColor[j]}"><span></span></td>`; }
     h += `<td class="tot" id="t-${i}"></td>`;
     for (let g2=0;g2<N_SDG;g2++) h += `<td class="sc" id="sc-${i}-${g2}"></td>`;
     h += `</tr>`;
@@ -466,7 +466,8 @@ async function offer(filename, data, fallbackText){
 const slug = () => { const p=sdgInfo(state.sdgs[0]); const who=state.owner.trim().replace(/[^\w-]+/g,"-").replace(/^-|-$/g,""); return ["interaction-matrix", p?"SDG"+p[0]:"", who].filter(Boolean).join("_"); };
 
 $("save-json").addEventListener("click", ()=>{ const txt=JSON.stringify(snapshot(),null,1); offer(slug()+".json", txt, txt); });
-$("open-json").addEventListener("click", ()=>$("open-file").click());
+$("open-json").addEventListener("click", ()=>$(
+"open-file").click());
 $("open-file").addEventListener("change", e=>{
   const f=e.target.files[0]; if(!f) return;
   const r=new FileReader();
@@ -532,7 +533,7 @@ function drawPNG(){
     x.fillText(fit(x,agentName(i),nameW-14), leftX+steepW+colorW+piW+8, y+cs*0.68);
     for (let j=0;j<N;j++){ const cx=gridX+j*cs;
       if (i===j){ x.fillStyle=diag; x.fillRect(cx,y,cs,cs); }
-      else if (M[i*N+j]){ x.fillStyle=gColor(grp(Math.max(i,j))); x.beginPath(); x.moveTo(cx,y); if (j>i){ x.lineTo(cx+cs,y); } else { x.lineTo(cx,y+cs); } x.lineTo(cx+cs,y+cs); x.closePath(); x.fill(); } }
+      else if (M[i*N+j]){ x.fillStyle=gColor(grp(j)); x.beginPath(); x.moveTo(cx,y); if (j>i){ x.lineTo(cx+cs,y); } else { x.lineTo(cx,y+cs); } x.lineTo(cx+cs,y+cs); x.closePath(); x.fill(); } }
     x.font=`600 12px ${mono}`; x.fillStyle=ink; x.textAlign="center";
     x.fillText(String(d.rowTot[i]), totX+totW/2, y+cs*0.68);
     x.font=`400 12px ${mono}`;
