@@ -1,5 +1,21 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="app-build" content="ae05b3ac96">
+<script>
+(function(){
+  var cur=(document.querySelector('meta[name="app-build"]')||{}).content;
+  if(!cur||!window.fetch||!window.URL||location.protocol==="file:") return;
+  var u=new URL(location.href);
+  fetch(u.origin+u.pathname+"?check="+Date.now(),{cache:"no-store"})
+    .then(function(r){return r.ok?r.text():null;})
+    .then(function(t){
+      if(!t) return;
+      var m=t.match(/<meta name="app-build" content="([^"]+)"/);
+      if(!m||m[1]===cur||u.searchParams.get("v")===m[1]) return;
+      u.searchParams.set("v",m[1]); location.replace(u.toString());
+    }).catch(function(){});
+})();
+</script>
 <style>:root{color-scheme:light}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
 <title>SDG Interaction Matrix</title>
 <meta name="claude:viewport-fit-sides" content="cover">
@@ -118,6 +134,21 @@ td.tot,th.tot-h{border-left:10px solid var(--surface)!important;box-shadow:inset
 .mx tfoot .tlabel{text-align:right;padding-right:10px!important;font:600 11px var(--f-cond);letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
 .hint{font:400 13px var(--f-cond);color:var(--muted);margin-top:10px}
 
+.mode{display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center;margin-bottom:12px}
+.mode-label{font:600 11px var(--f-cond);letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.seg-group{display:inline-flex;border:1px solid var(--line-strong);border-radius:6px;overflow:hidden}
+.seg{padding:7px 12px;border:0;background:var(--surface);cursor:pointer;font:500 13px var(--f-body);white-space:nowrap}
+.seg+.seg{border-left:1px solid var(--line-strong)}
+.seg:hover{color:var(--accent)}
+.seg[aria-checked="true"]{background:var(--accent);color:var(--surface)}
+.seg[aria-checked="true"]:hover{color:var(--surface)}
+.mode-note{font:400 13px var(--f-cond);color:var(--muted);flex:1 1 280px;min-width:0}
+.brush{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:12px}
+.chipbtn{display:inline-flex;align-items:center;padding:4px 8px;min-height:32px;border:1px solid var(--line-strong);border-radius:6px;background:var(--surface);cursor:pointer;font:500 13px var(--f-body)}
+.chipbtn:hover{border-color:var(--accent)}
+.chipbtn[aria-checked="true"]{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent)}
+.chipbtn .sw{margin:0}
+
 /* Summaries */
 .summaries{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:12px}
 .card{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:16px;min-width:0;display:flex;flex-direction:column;gap:10px}
@@ -139,8 +170,16 @@ table.mini{border-collapse:collapse;font:400 12.5px var(--f-mono);font-variant-n
 @media (prefers-reduced-motion:no-preference){.toast{transition:opacity .2s}}
 </style>
 
+<style>
+.tabs{display:flex;gap:4px;border-bottom:1px solid var(--line);overflow-x:auto;margin-bottom:-8px}
+.tabs a{display:inline-flex;align-items:center;gap:8px;padding:10px 14px;font:600 14px var(--f-body);color:var(--muted);text-decoration:none;border-bottom:3px solid transparent;margin-bottom:-1px;white-space:nowrap}
+.tabs a:hover{color:var(--ink)}
+.tabs a[aria-current="page"]{color:var(--ink);border-bottom-color:var(--accent)}
+.tabs b{display:inline-grid;place-items:center;width:20px;height:20px;border-radius:50%;border:1px solid currentColor;font:600 11px var(--f-mono)}
+</style>
 </head><body>
 <div class="wrap">
+  <nav class="tabs" aria-label="Templates"><a href="./" aria-current="page"><b>1</b>Interaction Matrix</a><a href="scoring.html"><b>2</b>Scoring Matrix</a></nav>
   <header class="top">
     <div class="intro">
       <span class="eyebrow">750 · Complexity and Sustaining Success</span>
@@ -164,6 +203,11 @@ table.mini{border-collapse:collapse;font:400 12.5px var(--f-mono);font-variant-n
     <button class="btn primary" id="start-blank-banner" type="button">Start a blank matrix</button>
   </div>
 
+  <div class="banner" id="saved-banner" hidden>
+    <span id="saved-text"><strong>Your saved work.</strong> This browser kept the matrix you were working on. To start over, use New blank matrix.</span>
+    <button class="btn" id="saved-dismiss" type="button">OK</button>
+  </div>
+
   <section aria-labelledby="setup-h">
     <div class="section-head">
       <h2 id="setup-h">SDGs and agents</h2>
@@ -181,15 +225,25 @@ table.mini{border-collapse:collapse;font:400 12.5px var(--f-mono);font-variant-n
         <span class="sep" aria-hidden="true"></span>
         <button class="btn" id="save-json" type="button">Save work file</button>
         <button class="btn" id="open-json" type="button">Open work file</button>
-        <input type="file" id="open-file" accept=".json,application/json" hidden>
+        <input type="file" id="open-file" accept=".json,.csv,.png,application/json,text/csv,image/png" hidden>
         <span class="sep" aria-hidden="true"></span>
         <button class="btn" id="clear-marks" type="button">Clear marks</button>
         <button class="btn" id="start-blank" type="button">New blank matrix</button>
       </div>
     </div>
+    <div class="mode" hidden>
+      <span class="mode-label" id="mode-label">Color rule</span>
+      <div class="seg-group" role="radiogroup" aria-labelledby="mode-label">
+        <button class="seg" id="mode-mirror" role="radio" type="button">Mirror image</button>
+        <button class="seg" id="mode-column" role="radio" type="button">Column colors</button>
+        <button class="seg" id="mode-pick" role="radio" type="button">Pick colors</button>
+      </div>
+      <span class="mode-note" id="mode-note"></span>
+    </div>
+    <div class="brush" id="brush" role="radiogroup" aria-label="Paint color" hidden></div>
     <div class="stats" id="stats"></div>
     <div class="scroller"><table class="mx" id="mx"></table></div>
-    <p class="hint">Click a square to mark an interaction between the row agent and the column agent. The mirror square fills in automatically. With a mouse, drag across squares to mark several at once. Each triangle takes the color of its column's SDG, so every column keeps one color from top to bottom. The two sides of the diagonal mirror each other in position.</p>
+    <p class="hint">Click a square to mark an interaction between the row agent and the column agent. The mirror square fills in automatically. With a mouse, drag across squares to mark several at once. Each triangle takes the color of its column's SDG, so every column keeps one color from top to bottom.</p>
   </section>
 
   <section class="summaries" aria-label="Summaries">
@@ -229,10 +283,11 @@ const SDG_LIST = [
   [16,"Peace, Justice and Strong Institutions","#00689D"],[17,"Partnerships for the Goals","#19486A"]];
 const STEEP = [["S","Social"],["T","Technological"],["Ec","Economic"],["En","Environmental"],["P","Political"]];
 const UNSET = "#9AA3AF";
-const KEY = "sdg-interaction-matrix-v1";
+const KEY = "sdg-interaction-matrix-v2";   // v2: fresh start for everyone (Oct 25)
+const LOCK_MODE = "column";   // set to "mirror", "column" or "pick" to fix the color rule
 
 const $ = id => document.getElementById(id);
-const esc = s => String(s ?? "").replace(/[&<>\"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const grp = a => Math.floor(a / PER);
 const sdgInfo = n => SDG_LIST.find(s => s[0] === n) || null;
 const gColor = g => { const s = sdgInfo(state.sdgs[g]); return s ? s[2] : UNSET; };
@@ -241,6 +296,81 @@ const textOn = hex => { const r=parseInt(hex.slice(1,3),16), gg=parseInt(hex.sli
   return (0.299*r + 0.587*gg + 0.114*b)/255 > 0.62 ? "#141C28" : "#FFFFFF"; };
 const agentName = a => state.agents[a].name.trim() || `Agent ${a % PER + 1} (${gLabel(grp(a))})`;
 const steepIdx = a => STEEP.findIndex(s => s[0] === state.agents[a].steep);
+/* Which SDG slot colors the triangle in cell (row i, column j). */
+const colorGroup = (i,j) => { const m=state.colorMode; if (m==="column") return grp(j); if (m==="pick" && C[i*N+j]) return C[i*N+j]-1; return grp(Math.max(i,j)); };
+const colorOf = (i,j) => gColor(colorGroup(i,j));
+
+/* ---- Reading and writing matrix files (JSON, CSV, PNG) ---- */
+const CRC_T = (()=>{ const t=new Uint32Array(256); for (let n=0;n<256;n++){ let c=n; for (let k=0;k<8;k++) c = c&1 ? 0xEDB88320^(c>>>1) : c>>>1; t[n]=c>>>0; } return t; })();
+const crc32 = b => { let c=0xFFFFFFFF; for (let i=0;i<b.length;i++) c = CRC_T[(c^b[i])&255]^(c>>>8); return (c^0xFFFFFFFF)>>>0; };
+/* Exported PNGs carry the matrix data in a text chunk, so the picture itself can be uploaded again. */
+async function pngWithData(blob, obj){
+  const buf=new Uint8Array(await blob.arrayBuffer()), enc=new TextEncoder();
+  const kw=enc.encode("sdg-matrix"), txt=enc.encode(JSON.stringify(obj)), type=enc.encode("iTXt");
+  const data=new Uint8Array(kw.length+5+txt.length); data.set(kw,0); data.set(txt,kw.length+5);
+  const chunk=new Uint8Array(12+data.length), dv=new DataView(chunk.buffer);
+  dv.setUint32(0,data.length); chunk.set(type,4); chunk.set(data,8);
+  const crcIn=new Uint8Array(4+data.length); crcIn.set(type,0); crcIn.set(data,4); dv.setUint32(8+data.length, crc32(crcIn));
+  const iend=buf.length-12, out=new Uint8Array(buf.length+chunk.length);
+  out.set(buf.subarray(0,iend),0); out.set(chunk,iend); out.set(buf.subarray(iend),iend+chunk.length);
+  return new Blob([out],{type:"image/png"});
+}
+function readPngData(buf){
+  const sig=[137,80,78,71,13,10,26,10]; for (let i=0;i<8;i++) if (buf[i]!==sig[i]) return null;
+  const dv=new DataView(buf.buffer,buf.byteOffset,buf.byteLength), dec=new TextDecoder(); let p=8;
+  while (p+12<=buf.length){
+    const len=dv.getUint32(p), type=dec.decode(buf.subarray(p+4,p+8));
+    if (type==="iTXt"){ const d=buf.subarray(p+8,p+8+len), z=d.indexOf(0);
+      if (dec.decode(d.subarray(0,z))==="sdg-matrix"){ let q=d.indexOf(0,z+3)+1; q=d.indexOf(0,q)+1; try { return JSON.parse(dec.decode(d.subarray(q))); } catch(e){ return null; } } }
+    if (type==="IEND") break;
+    p += 12+len;
+  }
+  return null;
+}
+function parseCSV(t){
+  const rows=[]; let row=[], f="", q=false;
+  for (let i=0;i<t.length;i++){ const c=t[i];
+    if (q){ if (c==='"'){ if (t[i+1]==='"'){ f+='"'; i++; } else q=false; } else f+=c; }
+    else if (c==='"') q=true;
+    else if (c===','){ row.push(f); f=""; }
+    else if (c==='\n'||c==='\r'){ if (c==='\r'&&t[i+1]==='\n') i++; row.push(f); rows.push(row); row=[]; f=""; }
+    else f+=c; }
+  if (f!==""||row.length){ row.push(f); rows.push(row); }
+  return rows;
+}
+function matrixFromCSV(text){
+  const rows=parseCSV(String(text).replace(/^﻿/,"")).filter(r=>r.some(x=>x.trim()!==""));
+  const h=rows[0]||[];
+  if (h[0]!=="STEEP" || h[3]!=="Agent") throw new Error("not-ours");
+  const isScore = h[h.length-1]==="Net";
+  if (h.length-4-(isScore ? 7 : 1+N_SDG) !== N || rows.length < N+1) throw new Error("size");
+  const sdgs=Array(N_SDG).fill(0), agents=[], marks=[], scores=[]; const seen=new Set();
+  for (let i=0;i<N;i++){ const r=rows[1+i];
+    const m=/SDG\s*(\d+)/.exec(r[1]||""); if (m && !sdgs[Math.floor(i/PER)]) sdgs[Math.floor(i/PER)]=+m[1];
+    let name=(r[3]||"").trim(); if (/^Agent \d+ \(.*\)$/.test(name)) name="";
+    agents.push({name, steep: STEEP.some(x=>x[0]===r[0]) ? r[0] : ""});
+    for (let j=0;j<N;j++){ const v=(r[4+j]||"").trim(); if (i===j || !v || v==="x") continue;
+      if (isScore){ const n=parseInt(v.replace("−","-"),10); if ([-3,-2,-1,1,2,3].includes(n)) scores.push([i,j,n]); }
+      else if (v==="1"){ const k=j>i ? i*N+j : j*N+i; if (!seen.has(k)){ seen.add(k); marks.push(j>i ? [i,j] : [j,i]); } } } }
+  return isScore ? {app:"sdg-scoring-matrix", sdgs, agents, scores} : {app:"sdg-interaction-matrix", sdgs, agents, marks};
+}
+function readMatrixFile(f){
+  return new Promise((res,rej)=>{
+    const r=new FileReader(), name=(f.name||"").toLowerCase(), isPng = name.endsWith(".png") || f.type==="image/png";
+    r.onerror=()=>rej(new Error("read"));
+    r.onload=()=>{ try {
+        if (isPng){ const d=readPngData(new Uint8Array(r.result)); if (!d) throw new Error("png-nodata"); res(d); }
+        else if (name.endsWith(".csv") || f.type==="text/csv") res(matrixFromCSV(r.result));
+        else res(JSON.parse(r.result));
+      } catch(e){ rej(e); } };
+    isPng ? r.readAsArrayBuffer(f) : r.readAsText(f);
+  });
+}
+const fileError = e => ({
+  "png-nodata":"This PNG doesn't carry matrix data. Only PNGs exported from the updated pages can be uploaded. Export a new PNG, or upload the JSON or CSV file instead.",
+  "size":"This file is from a different matrix size, such as the old 6-agent version. It needs 5 agents per SDG.",
+  "not-ours":"This CSV wasn't exported from the Interaction Matrix or the Scoring Matrix."
+}[e && e.message] || "That file couldn't be read. Upload a JSON, CSV or PNG exported from the Interaction Matrix or the Scoring Matrix.");
 
 /* ---- State ---- */
 function exampleState(){
@@ -251,7 +381,7 @@ function exampleState(){
     "Wastewater Treatment","Fertilizer Runoff","Water Utilities","River Pollution","Water Quality Standards",
     "Fisheries","Fish Stocks","Fishing Quotas","Aquaculture","Food Markets"];
   const steeps = ["En","S","P","P","T", "Ec","Ec","S","T","P", "En","En","T","Ec","T", "T","En","Ec","En","P", "Ec","En","P","T","Ec"];
-  const s = { example:true, owner:"", sdgs:[14,12,13,6,2], agents:names.map((n,i)=>({name:n, steep:steeps[i]})), marks:[] };
+  const s = { example:true, colorMode:"mirror", owner:"", sdgs:[14,12,13,6,2], agents:names.map((n,i)=>({name:n, steep:steeps[i]})), marks:[] };
   let seed = 11; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
   for (let i=0;i<N;i++) for (let j=i+1;j<N;j++){
     const gi=grp(i), gj=grp(j);
@@ -261,27 +391,30 @@ function exampleState(){
   return s;
 }
 function blankState(owner){
-  return { example:false, owner:owner||"", sdgs:Array(N_SDG).fill(0), agents:Array.from({length:N},()=>({name:"",steep:""})), marks:[] };
+  return { example:false, colorMode:(state&&state.colorMode)||"mirror", owner:owner||"", sdgs:Array(N_SDG).fill(0), agents:Array.from({length:N},()=>({name:"",steep:""})), marks:[] };
 }
 function valid(s){
   return s && Array.isArray(s.sdgs) && s.sdgs.length===N_SDG && Array.isArray(s.agents) && s.agents.length===N &&
     s.agents.every(a => a && typeof a.name==="string") && Array.isArray(s.marks);
 }
-let state, M = new Uint8Array(N*N);
+let state, M = new Uint8Array(N*N), C = new Uint8Array(N*N);
 function adopt(s){
-  state = { example:!!s.example, owner:String(s.owner||""), sdgs:s.sdgs.map(n=>+n||0),
+  state = { example:!!s.example, colorMode:LOCK_MODE||(["mirror","column","pick"].includes(s.colorMode)?s.colorMode:"mirror"), owner:String(s.owner||""), sdgs:s.sdgs.map(n=>+n||0),
     agents:s.agents.map(a=>({name:String(a.name).slice(0,60), steep:STEEP.some(x=>x[0]===a.steep)?a.steep:""})), marks:[] };
-  M = new Uint8Array(N*N);
+  M = new Uint8Array(N*N); C = new Uint8Array(N*N);
   for (const [i,j] of s.marks){ if (i>=0&&j>=0&&i<N&&j<N&&i!==j){ M[i*N+j]=1; M[j*N+i]=1; } }
+  for (const [i,j,g] of (Array.isArray(s.colors)?s.colors:[])){ if (i>=0&&j>=0&&i<N&&j<N&&i!==j&&g>=0&&g<N_SDG&&M[i*N+j]){ C[i*N+j]=g+1; C[j*N+i]=g+1; } }
 }
+let restored=false, restoredAt=0;
 (function load(){
   let s = null;
   try { s = JSON.parse(localStorage.getItem(KEY) || "null"); } catch(e) { s = null; }
-  adopt(valid(s) ? s : exampleState());
+  if (valid(s)) { adopt(s); restored = !s.example; restoredAt = +s.savedAt || 0; } else adopt(exampleState());
 })();
 function snapshot(){
   const marks=[]; for (let i=0;i<N;i++) for (let j=i+1;j<N;j++) if (M[i*N+j]) marks.push([i,j]);
-  return { app:"sdg-interaction-matrix", version:1, example:state.example, owner:state.owner, sdgs:state.sdgs, agents:state.agents, marks };
+  const colors=[]; for (let i=0;i<N;i++) for (let j=i+1;j<N;j++) if (M[i*N+j] && C[i*N+j]) colors.push([i,j,C[i*N+j]-1]);
+  return { app:"sdg-interaction-matrix", version:1, savedAt:Date.now(), example:state.example, colorMode:state.colorMode, owner:state.owner, sdgs:state.sdgs, agents:state.agents, marks, colors };
 }
 let saveT; function persist(){ clearTimeout(saveT); saveT = setTimeout(()=>{ try{ localStorage.setItem(KEY, JSON.stringify(snapshot())); }catch(e){} }, 250); }
 
@@ -327,6 +460,7 @@ function updateLabels(a){
 /* ---- Matrix ---- */
 let cellEls = [];
 function renderMatrix(){
+  applyMode();
   const colColor = Array.from({length:N},(_,j)=>gColor(grp(j)));
   let h = `<thead><tr><th class="s0"><div class="v">STEEP</div></th><th class="s1"><div class="v">SDG</div></th><th class="s2"><div class="v">P / I</div></th><th class="s3">Agents</th>`;
   for (let j=0;j<N;j++){ const nm=agentName(j);
@@ -337,7 +471,7 @@ function renderMatrix(){
   for (let i=0;i<N;i++){ const g=grp(i), nm=agentName(i);
     h += `<tr class="${i%PER===0&&i>0?"gs":""}"><td class="s0 steep" id="st-${i}">${state.agents[i].steep||"·"}</td><td class="s1"><span class="bar" style="background:${gColor(g)}"></span></td><td class="s2 pi">${g===0?"P":"I"}</td>`;
     h += `<th class="s3 rowh${state.agents[i].name.trim()?"":" empty"}" id="rh-${i}" scope="row" title="${esc(nm)}">${esc(nm)}</th>`;
-    for (let j=0;j<N;j++){ h += `<td class="c${j%PER===0?" gl":""}${i===j?" d":""}${j>i?" up":""}${M[i*N+j]?" on":""}" data-i="${i}" data-j="${j}" style="--tc:${colColor[j]}"><span></span></td>`; }
+    for (let j=0;j<N;j++){ h += `<td class="c${j%PER===0?" gl":""}${i===j?" d":""}${j>i?" up":""}${M[i*N+j]?" on":""}" data-i="${i}" data-j="${j}" style="--tc:${colorOf(i,j)}"><span></span></td>`; }
     h += `<td class="tot" id="t-${i}"></td>`;
     for (let g2=0;g2<N_SDG;g2++) h += `<td class="sc" id="sc-${i}-${g2}"></td>`;
     h += `</tr>`;
@@ -349,26 +483,30 @@ function renderMatrix(){
   cellEls = Array.from($("mx").querySelectorAll("td.c"));
   updateCounts();
 }
-function setMark(i,j,v){
-  if (i===j || M[i*N+j]===v) return;
-  M[i*N+j]=v; M[j*N+i]=v;
-  cellEls[i*N+j].classList.toggle("on",!!v); cellEls[j*N+i].classList.toggle("on",!!v);
+function setMark(i,j,v,g){   // g: chosen SDG slot for Pick colors, or -1 for the default
+  if (i===j) return;
+  const want = (v && state.colorMode==="pick" && g>=0) ? g+1 : 0;
+  if (M[i*N+j]===v && C[i*N+j]===want) return;
+  M[i*N+j]=v; M[j*N+i]=v; C[i*N+j]=want; C[j*N+i]=want;
+  for (const [a,b] of [[i,j],[j,i]]){ const el=cellEls[a*N+b]; el.classList.toggle("on",!!v); el.style.setProperty("--tc", colorOf(a,b)); }
   scheduleCounts(); persist();
 }
 let raf=0; function scheduleCounts(){ if(!raf) raf=requestAnimationFrame(()=>{ raf=0; updateCounts(); }); }
 
-let painting=null, hov=[-1,-1];
+let painting=null, hov=[-1,-1], brush=-1;
 const mx=$("mx");
 mx.addEventListener("pointerdown", e=>{
   const c=e.target.closest("td.c"); if(!c||c.classList.contains("d")) return;
-  const i=+c.dataset.i, j=+c.dataset.j, v=M[i*N+j]?0:1;
-  setMark(i,j,v);
+  const i=+c.dataset.i, j=+c.dataset.j;
+  let v=M[i*N+j]?0:1;
+  if (state.colorMode==="pick" && M[i*N+j] && brush>=0 && colorGroup(i,j)!==brush) v=1;   // different paint color: recolor instead of erase
+  setMark(i,j,v,brush);
   if (e.pointerType==="mouse"){ painting=v; e.preventDefault(); }
 });
 mx.addEventListener("pointerover", e=>{
   const c=e.target.closest("td.c"); if(!c){ return; }
   const i=+c.dataset.i, j=+c.dataset.j; hover(i,j);
-  if (painting!==null && i!==j) setMark(i,j,painting);
+  if (painting!==null && i!==j) setMark(i,j,painting,brush);
 });
 mx.addEventListener("pointerleave", ()=>hover(-1,-1));
 window.addEventListener("pointerup", ()=>painting=null);
@@ -388,7 +526,7 @@ function compute(){
   const S=Array.from({length:N_SDG},()=>new Array(N_SDG).fill(0));
   const T=Array.from({length:5},()=>new Array(5).fill(0)); let noSteep=0;
   for (let i=0;i<N;i++) for (let j=0;j<N;j++) if (M[i*N+j]){
-    rowTot[i]++; per[i][grp(j)]++;
+    rowTot[i]++; per[i][state.colorMode==="pick" ? colorGroup(i,j) : grp(j)]++;
     if (j>i){ const a=grp(i), b=grp(j); if(a===b) S[a][a]++; else { S[a][b]++; S[b][a]++; }
       const x=steepIdx(i), y=steepIdx(j); if (x<0||y<0) noSteep++; else if (x===y) T[x][x]++; else { T[x][y]++; T[y][x]++; } }
   }
@@ -435,6 +573,30 @@ function renderMini(id, Mx, heads, missing){
 $("owner").value = state.owner;
 $("owner").addEventListener("input", e=>{ state.owner=e.target.value; persist(); });
 
+/* ---- Color rule ---- */
+function applyMode(){
+  const m = state.colorMode;
+  $("mode-mirror").setAttribute("aria-checked", String(m==="mirror"));
+  $("mode-column").setAttribute("aria-checked", String(m==="column"));
+  $("mode-pick").setAttribute("aria-checked", String(m==="pick"));
+  const br=$("brush"); br.hidden = m!=="pick";
+  if (m==="pick"){
+    br.innerHTML = `<span class="mode-label">Paint with</span><button class="chipbtn" role="radio" type="button" data-b="-1" aria-checked="${brush===-1}">Column color</button>` +
+      state.sdgs.map((n,g)=>{ const c=gColor(g), s=sdgInfo(n);
+        return `<button class="chipbtn" role="radio" type="button" data-b="${g}" aria-checked="${brush===g}" title="${s?esc("SDG "+s[0]+" · "+s[1]):"SDG not chosen"}" aria-label="${s?esc("SDG "+s[0]):"SDG not chosen"}"><span class="sw" style="background:${c};color:${textOn(c)}">${s?s[0]:"?"}</span></button>`; }).join("");
+  }
+  $("mode-note").textContent = m==="mirror"
+    ? "Both triangles of a pair share one color. A square right of the diagonal takes its column's SDG color, and its mirror square on the left copies it."
+    : m==="column"
+    ? "Each triangle takes the color of its own column's SDG, so every column keeps one color from top to bottom."
+    : "Pick a paint color, then click squares. Column color uses the SDG of the column to the right of the diagonal. Click a marked square with a different paint to recolor it, or with the same paint to remove it. The mirror square copies the color, and row totals count triangles by color.";
+}
+function setMode(m){ if (state.colorMode===m) return; state.colorMode=m; renderMatrix(); persist(); }
+$("mode-mirror").addEventListener("click", ()=>setMode("mirror"));
+$("mode-column").addEventListener("click", ()=>setMode("column"));
+$("mode-pick").addEventListener("click", ()=>setMode("pick"));
+$("brush").addEventListener("click", e=>{ const b=e.target.closest("[data-b]"); if(!b) return; brush=+b.dataset.b; applyMode(); });
+
 /* ---- Two-step buttons (no confirm dialogs in this frame) ---- */
 function armed(btn, label, action){
   const orig=btn.textContent; let t=0;
@@ -447,7 +609,7 @@ function armed(btn, label, action){
 function startBlank(){ adopt(blankState(state.owner)); renderSetup(); renderMatrix(); persist(); $("owner").value=state.owner; toast("Blank matrix ready. Start by choosing your primary SDG."); $("sdg-0").focus(); }
 $("start-blank-banner").addEventListener("click", startBlank);
 armed($("start-blank"), "Click again to erase everything", startBlank);
-armed($("clear-marks"), "Click again to clear all marks", ()=>{ M.fill(0); cellEls.forEach(c=>c.classList.remove("on")); updateCounts(); persist(); toast("All marks cleared. Agents and SDGs are unchanged."); });
+armed($("clear-marks"), "Click again to clear all marks", ()=>{ M.fill(0); C.fill(0); cellEls.forEach(c=>c.classList.remove("on")); updateCounts(); persist(); toast("All marks cleared. Agents and SDGs are unchanged."); });
 
 /* ---- Files ---- */
 const dlP = (window.claude && typeof window.claude.use==="function") ? window.claude.use("downloads").catch(()=>null) : Promise.resolve(null);
@@ -466,14 +628,15 @@ async function offer(filename, data, fallbackText){
 const slug = () => { const p=sdgInfo(state.sdgs[0]); const who=state.owner.trim().replace(/[^\w-]+/g,"-").replace(/^-|-$/g,""); return ["interaction-matrix", p?"SDG"+p[0]:"", who].filter(Boolean).join("_"); };
 
 $("save-json").addEventListener("click", ()=>{ const txt=JSON.stringify(snapshot(),null,1); offer(slug()+".json", txt, txt); });
-$("open-json").addEventListener("click", ()=>$(
-"open-file").click());
-$("open-file").addEventListener("change", e=>{
-  const f=e.target.files[0]; if(!f) return;
-  const r=new FileReader();
-  r.onload=()=>{ try{ const s=JSON.parse(r.result); if(!valid(s)) throw 0; adopt(s); state.example=false; $("owner").value=state.owner; renderSetup(); renderMatrix(); persist(); toast(`Opened ${f.name}`); }
-    catch(err){ toast("That file isn't a saved interaction matrix. Choose a .json file saved from this page."); } e.target.value=""; };
-  r.readAsText(f);
+$("open-json").addEventListener("click", ()=>$("open-file").click());
+$("open-file").addEventListener("change", async e=>{
+  const f=e.target.files[0]; if(!f) return; e.target.value="";
+  try {
+    const s=await readMatrixFile(f);
+    if (s && s.app==="sdg-scoring-matrix") { toast("That's a Scoring Matrix file. Open it in the Scoring Matrix tab."); return; }
+    if (!valid(s)) throw new Error("size");
+    adopt(s); state.example=false; $("owner").value=state.owner; renderSetup(); renderMatrix(); persist(); toast(`Opened ${f.name}`);
+  } catch(err){ toast(fileError(err)); }
 });
 
 $("export-csv").addEventListener("click", ()=>{
@@ -490,7 +653,8 @@ $("export-csv").addEventListener("click", ()=>{
 $("export-png").addEventListener("click", async ()=>{
   try { await document.fonts.ready; } catch(e){}
   const blob = await drawPNG(); if (!blob){ toast("The image couldn't be drawn."); return; }
-  offer(slug()+".png", blob, null);
+  let out = blob; try { out = await pngWithData(blob, snapshot()); } catch(e){}
+  offer(slug()+".png", out, null);
 });
 
 function fit(ctx, text, w){ if (ctx.measureText(text).width<=w) return text; let t=text; while(t.length>1 && ctx.measureText(t+"…").width>w) t=t.slice(0,-1); return t+"…"; }
@@ -533,7 +697,7 @@ function drawPNG(){
     x.fillText(fit(x,agentName(i),nameW-14), leftX+steepW+colorW+piW+8, y+cs*0.68);
     for (let j=0;j<N;j++){ const cx=gridX+j*cs;
       if (i===j){ x.fillStyle=diag; x.fillRect(cx,y,cs,cs); }
-      else if (M[i*N+j]){ x.fillStyle=gColor(grp(j)); x.beginPath(); x.moveTo(cx,y); if (j>i){ x.lineTo(cx+cs,y); } else { x.lineTo(cx,y+cs); } x.lineTo(cx+cs,y+cs); x.closePath(); x.fill(); } }
+      else if (M[i*N+j]){ x.fillStyle=colorOf(i,j); x.beginPath(); x.moveTo(cx,y); if (j>i){ x.lineTo(cx+cs,y); } else { x.lineTo(cx,y+cs); } x.lineTo(cx+cs,y+cs); x.closePath(); x.fill(); } }
     x.font=`600 12px ${mono}`; x.fillStyle=ink; x.textAlign="center";
     x.fillText(String(d.rowTot[i]), totX+totW/2, y+cs*0.68);
     x.font=`400 12px ${mono}`;
@@ -567,6 +731,12 @@ function drawPNG(){
 }
 
 renderSetup(); renderMatrix();
+if (restored){
+  let when=""; try { if (restoredAt) when = " (last saved " + new Date(restoredAt).toLocaleString([], {dateStyle:"medium", timeStyle:"short"}) + ")"; } catch(e){}
+  $("saved-text").innerHTML = `<strong>Your saved work${when}.</strong> This browser kept the matrix you were working on. To start over, use New blank matrix.`;
+  $("saved-banner").hidden = false;
+}
+$("saved-dismiss").addEventListener("click", ()=>{ $("saved-banner").hidden = true; });
 })();
 </script>
 
