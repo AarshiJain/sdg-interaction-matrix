@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="app-build" content="a25184e9b6">
+<meta name="app-build" content="1ffea2033f">
 <script>
 (function(){
   var cur=(document.querySelector('meta[name="app-build"]')||{}).content;
@@ -27,7 +27,7 @@
 :root{
   --bg:#F2F4F7; --surface:#FFFFFF; --ink:#141C28; --muted:#5A6576; --line:#D7DCE3; --line-strong:#7E8999;
   --accent:#0B6BB0; --diag:#243042; --hover:#E2EBF6; --warn:#B4531A;
-  --pos:#2F8A4C; --neg:#A8283E; --on-score:#FFFFFF; --guide:#9AA6B6;
+  --pos:#2F8A4C; --neg:#A8283E; --on-score:#FFFFFF; --guide:#9AA6B6; --top:#1E5FB4; --hit:#141C28;
   --f-display:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
   --f-body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
   --f-cond:"IBM Plex Sans Condensed","Arial Narrow",system-ui,sans-serif;
@@ -37,11 +37,11 @@
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
   --bg:#0C121C; --surface:#131B28; --ink:#E5EAF1; --muted:#93A0B3; --line:#253145; --line-strong:#56657D;
   --accent:#5BB1F0; --diag:#03060B; --hover:#1B2A3F; --warn:#F0A060;
-  --pos:#3E9E5C; --neg:#C2384F; --on-score:#FFFFFF; --guide:#5E6E85; color-scheme:dark}}
+  --pos:#3E9E5C; --neg:#C2384F; --on-score:#FFFFFF; --guide:#5E6E85; --top:#3D86DB; --hit:#FFFFFF; color-scheme:dark}}
 :root[data-theme="dark"]{
   --bg:#0C121C; --surface:#131B28; --ink:#E5EAF1; --muted:#93A0B3; --line:#253145; --line-strong:#56657D;
   --accent:#5BB1F0; --diag:#03060B; --hover:#1B2A3F; --warn:#F0A060;
-  --pos:#3E9E5C; --neg:#C2384F; --on-score:#FFFFFF; --guide:#5E6E85; color-scheme:dark}
+  --pos:#3E9E5C; --neg:#C2384F; --on-score:#FFFFFF; --guide:#5E6E85; --top:#3D86DB; --hit:#FFFFFF; color-scheme:dark}
 
 *{box-sizing:border-box}
 body{background:var(--bg);color:var(--ink);font:15px/1.5 var(--f-body);
@@ -118,10 +118,12 @@ thead .s0 .v,thead .s1 .v,thead .s2 .v{font:600 10px var(--f-cond);letter-spacin
 .c{width:var(--cell);min-width:var(--cell);max-width:var(--cell);height:var(--cell);position:relative;cursor:pointer;touch-action:manipulation;
    text-align:center;font:600 11px/1 var(--f-mono);letter-spacing:-.02em}
 .c.d{background:var(--diag);cursor:default}
-.c:not(.d):not(.pos):not(.neg):hover{background:var(--hover)}
+.c:not(.d):not(.pos):not(.neg):not(.tp):hover{background:var(--hover)}
 .c.pos{background:var(--pos);color:var(--on-score)}
+.c.tp{background:var(--top);color:var(--on-score)}
+.c.g.pos,.c.g.neg,.c.g.tp{box-shadow:inset 0 0 0 2px var(--hit)}
 .c.neg{background:var(--neg);color:var(--on-score)}
-.c.g:not(.pos):not(.neg)::after{content:"";position:absolute;left:50%;top:50%;width:6px;height:6px;margin:-3px 0 0 -3px;border-radius:50%;border:1.5px solid var(--guide)}
+.c.g:not(.pos):not(.neg):not(.tp)::after{content:"";position:absolute;left:50%;top:50%;width:6px;height:6px;margin:-3px 0 0 -3px;border-radius:50%;border:1.5px solid var(--guide)}
 .c:focus{outline:2px solid var(--accent);outline-offset:-2px;z-index:2}
 .mx .gl{border-left:2px solid var(--line-strong)}
 .mx tr.gs>*{border-top:2px solid var(--line-strong)}
@@ -133,7 +135,7 @@ td.first-cnt,th.first-cnt{border-left:10px solid var(--surface)!important;box-sh
 .net.p{color:var(--pos)} .net.n{color:var(--neg)}
 .ch{width:34px;min-width:34px;padding-bottom:6px!important}
 .badge{display:inline-grid;place-items:center;min-width:28px;height:22px;padding:0 4px;border-radius:3px;font:700 12px var(--f-mono);color:var(--on-score)}
-.badge.p{background:var(--pos)} .badge.n{background:var(--neg)}
+.badge.p{background:var(--pos)} .badge.n{background:var(--neg)} .badge.t{background:var(--top)}
 .net-h{font:600 10px var(--f-cond);letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
 .mx tfoot td{border-top:2px solid var(--line-strong);height:28px;font-weight:600}
 .mx tfoot .tlabel{text-align:right;padding-right:10px!important;font:600 11px var(--f-cond);letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
@@ -256,12 +258,13 @@ table.mini{border-collapse:collapse;font:400 12.5px var(--f-mono);font-variant-n
       <div style="min-width:0">
         <div class="stats" id="stats"></div>
         <div class="scroller"><table class="mx" id="mx"></table></div>
-        <p class="hint">Pick a score in the ranking key, then move across each row and click the squares to score how the row agent affects the column agent. Clicking a square that already has the chosen score clears it. With a mouse, drag to score several squares at once. On a keyboard, use the arrow keys, type <kbd>1</kbd> <kbd>2</kbd> <kbd>3</kbd> for a positive score or <kbd>-</kbd> then a number for a negative one, and <kbd>Delete</kbd> to clear. A small ring marks an interaction from your Interaction Matrix that has no score yet.</p>
+        <p class="hint">Pick a score in the ranking key, then move across each row and click the squares to score how the row agent affects the column agent. The same score appears automatically in the mirror square on the other side of the diagonal. Clicking a square that already has the chosen score clears both. With a mouse, drag to score several squares at once. On a keyboard, use the arrow keys, type <kbd>1</kbd> <kbd>2</kbd> <kbd>3</kbd> for a positive score or <kbd>-</kbd> then a number for a negative one, and <kbd>Delete</kbd> to clear. A small ring marks an interaction from your Interaction Matrix that has no score yet.</p>
       </div>
       <aside class="side" aria-label="Keys">
         <div>
           <div class="key-title"><h3 id="rk-h">Ranking key</h3><span class="muted" style="font:500 12px var(--f-cond)">Click to choose a score</span></div>
           <div class="rank-key" id="rank-key" role="radiogroup" aria-labelledby="rk-h"></div>
+          <p class="muted" style="font:400 12.5px/1.4 var(--f-cond);margin:10px 0 0">A scored square with an outline was also marked as an interaction in your Interaction Matrix.</p>
         </div>
         <div>
           <h3>SDG color key</h3>
@@ -281,7 +284,7 @@ table.mini{border-collapse:collapse;font:400 12.5px var(--f-mono);font-variant-n
     </div>
     <div class="card">
       <h2>Net scores between SDGs</h2>
-      <p>The sum of scores given by each row SDG's agents to each column SDG's agents. Green means the row SDG mostly helps the column SDG, and red means it mostly holds it back.</p>
+      <p>The sum of scores for every pair of agents across two SDGs. The diagonal holds pairs inside one SDG. Green means the SDGs mostly help each other, and red means they mostly hold each other back.</p>
       <div class="mini-wrap" id="sdg-net"></div>
     </div>
     <div class="card">
@@ -319,7 +322,7 @@ const SCALE = [
   {v:-3, name:"Cancelling",    def:"Interaction with one agent threatens or prevents the other agent from being achieved"}];
 const COLS = [-3,-2,-1,1,2,3];
 const UNSET = "#9AA3AF";
-const KEY = "sdg-scoring-matrix-v2";
+const KEY = "sdg-scoring-matrix-v3";   // v3: mirrored scores, fresh start
 const IM_KEY = "sdg-interaction-matrix-v2";
 
 const $ = id => document.getElementById(id);
@@ -332,6 +335,7 @@ const textOn = hex => { const r=parseInt(hex.slice(1,3),16), gg=parseInt(hex.sli
   return (0.299*r + 0.587*gg + 0.114*b)/255 > 0.62 ? "#141C28" : "#FFFFFF"; };
 const agentName = a => state.agents[a].name.trim() || `Agent ${a % PER + 1} (${gLabel(grp(a))})`;
 const fmt = v => v > 0 ? "+" + v : "−" + (-v);
+const bcls = v => v===3 ? "t" : v>0 ? "p" : "n";   // +3 has its own color
 const scaleOf = v => SCALE.find(s => s.v === v);
 const okScore = v => Number.isInteger(v) && v !== 0 && v >= -3 && v <= 3;
 
@@ -426,7 +430,7 @@ function exampleState(){
   }
   let seed2 = 7; const r2 = () => (seed2 = (seed2 * 48271) % 2147483647) / 2147483647;
   const pickScore = () => { const x=r2(); return x<.05?-3 : x<.13?-2 : x<.33?-1 : x<.68?1 : x<.9?2 : 3; };
-  for (const [i,j] of s.guides){ if (r2()<.88) s.scores.push([i,j,pickScore()]); if (r2()<.88) s.scores.push([j,i,pickScore()]); }
+  for (const [i,j] of s.guides){ if (r2()<.88) s.scores.push([i,j,pickScore()]); }
   return s;
 }
 function blankState(owner){
@@ -442,7 +446,7 @@ function adopt(s){
   state = { example:!!s.example, owner:String(s.owner||""), sdgs:s.sdgs.map(n=>+n||0),
     agents:s.agents.map(a=>({name:String(a.name).slice(0,60), steep:STEEP.some(x=>x[0]===a.steep)?a.steep:""})) };
   S = new Int8Array(N*N); G = new Uint8Array(N*N);
-  for (const t of (Array.isArray(s.scores)?s.scores:[])){ const [i,j,v]=t||[]; if (i>=0&&j>=0&&i<N&&j<N&&i!==j&&okScore(v)) S[i*N+j]=v; }
+  for (const t of (Array.isArray(s.scores)?s.scores:[])){ const [i,j,v]=t||[]; if (i>=0&&j>=0&&i<N&&j<N&&i!==j&&okScore(v)){ S[i*N+j]=v; S[j*N+i]=v; } }
   for (const t of (Array.isArray(s.guides)?s.guides:[])){ const [i,j]=t||[]; if (i>=0&&j>=0&&i<N&&j<N&&i!==j){ G[i*N+j]=1; G[j*N+i]=1; } }
 }
 let restored=false, restoredAt=0;
@@ -517,7 +521,7 @@ function updateLabels(a){
 let brush = 1;   // score applied by clicking; 0 = erase
 function renderKeys(){
   $("rank-key").innerHTML = SCALE.map(s=>`<button class="rk" type="button" role="radio" data-v="${s.v}" aria-checked="${brush===s.v}">
-      <span class="nm">${s.name}</span><span class="badge ${s.v>0?"p":"n"}">${fmt(s.v)}</span><span class="df">${esc(s.def)}</span></button>`).join("") +
+      <span class="nm">${s.name}</span><span class="badge ${bcls(s.v)}">${fmt(s.v)}</span><span class="df">${esc(s.def)}</span></button>`).join("") +
     `<button class="rk erase" type="button" role="radio" data-v="0" aria-checked="${brush===0}"><span class="nm">Erase</span><span class="badge">×</span><span class="df">Clear a square's score</span></button>`;
   $("sdg-key").innerHTML = state.sdgs.map((n,g)=>{ const c=gColor(g), s=sdgInfo(n);
     return `<div><span class="sw" style="background:${c};color:${textOn(c)}">${s?s[0]:"?"}</span><span>${g===0?"Primary · ":""}${s?esc(s[1]):"Not chosen yet"}</span></div>`; }).join("");
@@ -528,13 +532,13 @@ $("rank-key").addEventListener("click", e=>{ const b=e.target.closest("[data-v]"
 let cellEls = [], cur = [0,1];
 function cellClass(i,j){
   const v=S[i*N+j];
-  return "c" + (j%PER===0?" gl":"") + (i===j?" d":"") + (v>0?" pos":v<0?" neg":"") + (G[i*N+j]?" g":"");
+  return "c" + (j%PER===0?" gl":"") + (i===j?" d":"") + (v===3?" tp":v>0?" pos":v<0?" neg":"") + (G[i*N+j]?" g":"");
 }
 function renderMatrix(){
   let h = `<thead><tr><th class="s0"><div class="v">STEEP</div></th><th class="s1"><div class="v">SDG</div></th><th class="s2"><div class="v">P / I</div></th><th class="s3">Agents</th>`;
   for (let j=0;j<N;j++){ const nm=agentName(j);
     h += `<th class="colh${j%PER===0?" gl":""}${state.agents[j].name.trim()?"":" empty"}" id="ch-${j}" title="${esc(nm)}"><div class="v">${esc(nm)}</div></th>`; }
-  COLS.forEach((v,k)=>{ h += `<th class="ch${k===0?" first-cnt":""}" title="${esc(scaleOf(v).name)}"><span class="badge ${v>0?"p":"n"}">${fmt(v)}</span></th>`; });
+  COLS.forEach((v,k)=>{ h += `<th class="ch${k===0?" first-cnt":""}" title="${esc(scaleOf(v).name)}"><span class="badge ${bcls(v)}">${fmt(v)}</span></th>`; });
   h += `<th class="ch net"><span class="net-h">Net</span></th></tr></thead><tbody>`;
   for (let i=0;i<N;i++){ const g=grp(i), nm=agentName(i);
     h += `<tr class="${i%PER===0&&i>0?"gs":""}"><td class="s0 steep" id="st-${i}">${state.agents[i].steep||"·"}</td><td class="s1"><span class="bar" style="background:${gColor(g)}"></span></td><td class="s2 pi">${g===0?"P":"I"}</td>`;
@@ -554,7 +558,7 @@ function renderMatrix(){
 function paint(i,j){ const el=cellEls[i*N+j], v=S[i*N+j]; el.className=cellClass(i,j); el.textContent = v?fmt(v):""; }
 function setScore(i,j,v){
   if (i===j || S[i*N+j]===v) return;
-  S[i*N+j]=v; paint(i,j); scheduleCounts(); persist();
+  S[i*N+j]=v; S[j*N+i]=v; paint(i,j); paint(j,i); scheduleCounts(); persist();
 }
 let raf=0; function scheduleCounts(){ if(!raf) raf=requestAnimationFrame(()=>{ raf=0; updateCounts(); }); }
 
@@ -606,17 +610,20 @@ function hover(i,j){
 function compute(){
   const cnt=Array.from({length:N},()=>new Array(6).fill(0)), net=new Array(N).fill(0);
   const SN=Array.from({length:N_SDG},()=>new Array(N_SDG).fill(0)), SC=Array.from({length:N_SDG},()=>new Array(N_SDG).fill(0));
-  let scored=0, guides=0, guidesScored=0;
+  const dist=new Array(6).fill(0);
+  let scored=0, guides=0, guidesScored=0, pairNet=0;
   for (let i=0;i<N;i++) for (let j=0;j<N;j++){
     if (i===j) continue;
     const v=S[i*N+j];
+    if (v){ cnt[i][COLS.indexOf(v)]++; net[i]+=v; }
+    if (j<i) continue;                       // summaries count each mirrored pair once
     if (G[i*N+j]){ guides++; if (v) guidesScored++; }
     if (!v) continue;
-    scored++; cnt[i][COLS.indexOf(v)]++; net[i]+=v;
-    SN[grp(i)][grp(j)]+=v; SC[grp(i)][grp(j)]++;
+    scored++; dist[COLS.indexOf(v)]++; pairNet+=v;
+    const a=grp(i), b=grp(j); SN[a][b]+=v; SC[a][b]++; if (a!==b){ SN[b][a]+=v; SC[b][a]++; }
   }
   const tot=new Array(6).fill(0); cnt.forEach(r=>r.forEach((x,k)=>tot[k]+=x));
-  return {cnt, net, tot, totNet:net.reduce((a,b)=>a+b,0), SN, SC, scored, guides, guidesScored};
+  return {cnt, net, tot, totNet:net.reduce((a,b)=>a+b,0), SN, SC, dist, pairNet, scored, guides, guidesScored};
 }
 function updateCounts(){
   const d=compute();
@@ -627,32 +634,32 @@ function updateCounts(){
   }
   if ($("tot-net")){ COLS.forEach((v,k)=>$("tot-"+k).textContent=d.tot[k]);
     $("tot-net").textContent = d.totNet>0?"+"+d.totNet:d.totNet; $("tot-net").className="net"+(d.totNet>0?" p":d.totNet<0?" n":""); }
-  const possible=N*(N-1);
-  $("stats").innerHTML = `<span><b>${d.scored}</b>scored squares of ${possible}</span>` +
-    (d.guides ? `<span><b>${d.guidesScored}</b>of ${d.guides} interaction squares scored</span>` : "") +
-    `<span><b>${d.totNet>0?"+"+d.totNet:d.totNet}</b>net score of the whole system</span>`;
+  const possible=N*(N-1)/2;
+  $("stats").innerHTML = `<span><b>${d.scored}</b>scored agent pairs of ${possible}</span>` +
+    (d.guides ? `<span><b>${d.guidesScored}</b>of ${d.guides} interactions scored</span>` : "") +
+    `<span><b>${d.pairNet>0?"+"+d.pairNet:d.pairNet}</b>net score of all pairs</span>`;
   renderDist(d); renderSdgNet(d); renderAgents(d);
   $("example-banner").hidden = !state.example;
   $("import-banner").hidden = !(state.example || (d.scored===0 && d.guides===0));
   $("import-browser").hidden = !browserInteraction();
 }
 function renderDist(d){
-  const max=Math.max(1,...d.tot);
-  $("dist").innerHTML = SCALE.map(s=>{ const k=COLS.indexOf(s.v), n=d.tot[k];
-    return `<li><span class="badge ${s.v>0?"p":"n"}">${fmt(s.v)}</span><span>${s.name}</span>
-      <div class="track"><div class="fill" style="width:${n/max*100}%;background:var(${s.v>0?"--pos":"--neg"})"></div></div><span class="n">${n}</span></li>`; }).join("");
-  const pos=d.tot[3]+d.tot[4]+d.tot[5], neg=d.tot[0]+d.tot[1]+d.tot[2], all=pos+neg;
+  const max=Math.max(1,...d.dist);
+  $("dist").innerHTML = SCALE.map(s=>{ const k=COLS.indexOf(s.v), n=d.dist[k];
+    return `<li><span class="badge ${bcls(s.v)}">${fmt(s.v)}</span><span>${s.name}</span>
+      <div class="track"><div class="fill" style="width:${n/max*100}%;background:var(${s.v===3?"--top":s.v>0?"--pos":"--neg"})"></div></div><span class="n">${n}</span></li>`; }).join("");
+  const pos=d.dist[3]+d.dist[4]+d.dist[5], neg=d.dist[0]+d.dist[1]+d.dist[2], all=pos+neg;
   $("split").innerHTML = all ? `<span style="width:${pos/all*100}%;background:var(--pos)"></span><span style="width:${neg/all*100}%;background:var(--neg)"></span>` : "";
   $("split-legend").innerHTML = all ? `<span>${pos} helpful (${Math.round(pos/all*100)}%)</span><span>${neg} limiting (${Math.round(neg/all*100)}%)</span>` : `<span>No scores yet</span>`;
 }
 function renderSdgNet(d){
   const max=Math.max(1,...d.SN.flat().map(Math.abs));
   const head = g => { const c=gColor(g), s=sdgInfo(state.sdgs[g]); return `<span class="sw" style="background:${c};color:${textOn(c)}" title="${esc(gLabel(g))}">${s?s[0]:"?"}</span>`; };
-  let s=`<table class="mini"><tr><th class="r" style="font-size:10px">From ↓ To →</th>${state.sdgs.map((_,g)=>`<th>${head(g)}</th>`).join("")}</tr>`;
+  let s=`<table class="mini"><tr><th></th>${state.sdgs.map((_,g)=>`<th>${head(g)}</th>`).join("")}</tr>`;
   d.SN.forEach((row,r)=>{ s+=`<tr><th class="r">${head(r)}</th>`;
-    row.forEach((v,c)=>{ const pct=Math.round(Math.abs(v)/max*80), strong=pct>45;
+    row.forEach((v,c)=>{ if (c<r){ s+=`<td style="border-color:transparent"></td>`; return; } const pct=Math.round(Math.abs(v)/max*80), strong=pct>45;
       const bg = v ? `color-mix(in srgb, var(${v>0?"--pos":"--neg"}) ${pct}%, transparent)` : "transparent";
-      s+=`<td style="background:${bg};color:${strong?"var(--on-score)":"var(--ink)"};${r===c?"font-weight:600":""}" title="${esc(gLabel(r))} → ${esc(gLabel(c))}: net ${v} from ${d.SC[r][c]} scores">${v>0?"+"+v:v}</td>`; });
+      s+=`<td style="background:${bg};color:${strong?"var(--on-score)":"var(--ink)"};${r===c?"font-weight:600":""}" title="${esc(gLabel(r))} ↔ ${esc(gLabel(c))}: net ${v} from ${d.SC[r][c]} pairs">${v>0?"+"+v:v}</td>`; });
     s+=`</tr>`; });
   $("sdg-net").innerHTML = s + `</table>`;
 }
@@ -739,7 +746,7 @@ $("export-png").addEventListener("click", async ()=>{
 function fit(ctx, text, w){ if (ctx.measureText(text).width<=w) return text; let t=text; while(t.length>1 && ctx.measureText(t+"…").width>w) t=t.slice(0,-1); return t+"…"; }
 function drawPNG(){
   const d=compute();
-  const ink="#141C28", muted="#5A6576", line="#D7DCE3", strong="#7E8999", diag="#243042", pos="#2F8A4C", neg="#A8283E";
+  const ink="#141C28", muted="#5A6576", line="#D7DCE3", strong="#7E8999", diag="#243042", pos="#2F8A4C", neg="#A8283E", top="#1E5FB4";
   const cs=26, pad=48, steepW=30, colorW=12, piW=24, nameW=210;
   const leftX=pad, gridX=leftX+steepW+colorW+piW+nameW+6;
   const headerTop=pad+80, headerH=180, gridY=headerTop+headerH;
@@ -755,14 +762,14 @@ function drawPNG(){
   x.fillStyle=ink; x.font=`700 26px ${sans}`; x.fillText("SDG Agent Scoring Matrix", pad, pad+22);
   const p=sdgInfo(state.sdgs[0]);
   x.font=`500 14px ${cond}`; x.fillStyle=muted;
-  x.fillText([state.owner.trim(), p?`Primary SDG ${p[0]} · ${p[1]}`:"Primary SDG not chosen", `${d.scored} scored squares · net ${d.totNet>0?"+":""}${d.totNet}`].filter(Boolean).join("   ·   "), pad, pad+46);
+  x.fillText([state.owner.trim(), p?`Primary SDG ${p[0]} · ${p[1]}`:"Primary SDG not chosen", `${d.scored} scored pairs · net ${d.pairNet>0?"+":""}${d.pairNet}`].filter(Boolean).join("   ·   "), pad, pad+46);
   x.font=`500 11.5px ${cond}`; x.fillStyle=ink;
   for (let j=0;j<N;j++){ x.save(); x.translate(gridX+j*cs+cs*0.62, gridY-7); x.rotate(-Math.PI/3); x.fillText(fit(x,agentName(j),190),0,0); x.restore(); }
   const vlabel=(t,cx)=>{ x.save(); x.translate(cx, gridY-8); x.rotate(-Math.PI/2); x.fillText(t,0,0); x.restore(); };
   x.font=`600 10px ${cond}`; x.fillStyle=muted;
   vlabel("STEEP", leftX+steepW/2+3); vlabel("SDG", leftX+steepW+colorW/2+3); vlabel("P / I", leftX+steepW+colorW+piW/2+3);
   x.fillText("AGENTS", leftX+steepW+colorW+piW+8, gridY-10);
-  COLS.forEach((v,c)=>{ const bx=cntX+c*cntW; x.fillStyle=v>0?pos:neg; x.fillRect(bx+4, gridY-30, cntW-8, 22);
+  COLS.forEach((v,c)=>{ const bx=cntX+c*cntW; x.fillStyle=v===3?top:v>0?pos:neg; x.fillRect(bx+4, gridY-30, cntW-8, 22);
     x.fillStyle="#FFFFFF"; x.font=`700 12px ${mono}`; x.textAlign="center"; x.fillText(fmt(v), bx+cntW/2, gridY-14); x.textAlign="left"; });
   x.font=`600 10px ${cond}`; x.fillStyle=muted; x.textAlign="center"; x.fillText("NET", cntX+6*cntW+netW/2, gridY-14); x.textAlign="left";
   for (let i=0;i<N;i++){ const y=gridY+i*cs, g=grp(i);
@@ -774,7 +781,7 @@ function drawPNG(){
     x.fillText(fit(x,agentName(i),nameW-14), leftX+steepW+colorW+piW+8, y+cs*0.66);
     for (let j=0;j<N;j++){ const cx=gridX+j*cs, v=S[i*N+j];
       if (i===j){ x.fillStyle=diag; x.fillRect(cx,y,cs,cs); }
-      else if (v){ x.fillStyle=v>0?pos:neg; x.fillRect(cx,y,cs,cs); x.fillStyle="#FFFFFF"; x.font=`600 11px ${mono}`; x.textAlign="center"; x.fillText(fmt(v), cx+cs/2, y+cs*0.66); x.textAlign="left"; } }
+      else if (v){ x.fillStyle=v===3?top:v>0?pos:neg; x.fillRect(cx,y,cs,cs); if (G[i*N+j]){ x.strokeStyle=ink; x.lineWidth=2; x.strokeRect(cx+1.5,y+1.5,cs-3,cs-3); } x.fillStyle="#FFFFFF"; x.font=`600 11px ${mono}`; x.textAlign="center"; x.fillText(fmt(v), cx+cs/2, y+cs*0.66); x.textAlign="left"; } }
     x.font=`400 12px ${mono}`; x.textAlign="center";
     COLS.forEach((v,c)=>{ x.fillStyle=d.cnt[i][c]?ink:"#A8B0BC"; x.fillText(String(d.cnt[i][c]), cntX+c*cntW+cntW/2, y+cs*0.66); });
     x.font=`600 12px ${mono}`; x.fillStyle=d.net[i]>0?pos:d.net[i]<0?neg:ink; x.fillText((d.net[i]>0?"+":"")+d.net[i], cntX+6*cntW+netW/2, y+cs*0.66);
@@ -796,7 +803,7 @@ function drawPNG(){
   let ky=gridY;
   x.font=`600 11px ${cond}`; x.fillStyle=muted; x.fillText("RANKING KEY", keyX, ky-10);
   SCALE.forEach((s,r)=>{ const y=ky+r*58;
-    x.fillStyle=s.v>0?pos:neg; x.fillRect(keyX, y, 40, 40);
+    x.fillStyle=s.v===3?top:s.v>0?pos:neg; x.fillRect(keyX, y, 40, 40);
     x.fillStyle="#FFFFFF"; x.font=`700 15px ${mono}`; x.textAlign="center"; x.fillText(fmt(s.v), keyX+20, y+26); x.textAlign="left";
     x.fillStyle=ink; x.font=`600 15px ${sans}`; x.fillText(s.name, keyX+52, y+15);
     x.fillStyle=muted; x.font=`400 12px ${cond}`;
