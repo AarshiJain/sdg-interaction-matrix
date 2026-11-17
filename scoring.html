@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="app-build" content="27cdf74dc4">
+<meta name="app-build" content="661e5e592c">
 <script>
 (function(){
   var cur=(document.querySelector('meta[name="app-build"]')||{}).content;
@@ -252,7 +252,6 @@ table.mini{border-collapse:collapse;font:400 12.5px var(--f-mono);font-variant-n
         <span class="sep" aria-hidden="true"></span>
         <button class="btn" id="clear-marks" type="button">Clear scores</button>
         <button class="btn" id="start-blank" type="button">New blank matrix</button>
-        <button class="btn" id="show-example" type="button">Worked example</button>
       </div>
     </div>
     <div class="mx-layout">
@@ -323,7 +322,7 @@ const SCALE = [
   {v:-3, name:"Cancelling",    def:"Interaction with one agent threatens or prevents the other agent from being achieved"}];
 const COLS = [-3,-2,-1,1,2,3];
 const UNSET = "#9AA3AF";
-const KEY = "sdg-scoring-matrix-v4";   // v4: everyone starts with a blank matrix (Nov 17)
+const KEY = "sdg-scoring-matrix-v4";   // v4: one-time refresh for everyone (Nov 17)
 const IM_KEY = "sdg-interaction-matrix-v3";
 
 const $ = id => document.getElementById(id);
@@ -454,7 +453,7 @@ let restored=false, restoredAt=0;
 (function load(){
   let s = null;
   try { s = JSON.parse(localStorage.getItem(KEY) || "null"); } catch(e) { s = null; }
-  if (valid(s)) { adopt(s); restored = !s.example; restoredAt = +s.savedAt || 0; } else adopt(blankState(""));   // first visit: a blank matrix
+  if (valid(s)) { adopt(s); restored = !s.example; restoredAt = +s.savedAt || 0; } else adopt(exampleState());
 })();
 function snapshot(){
   const scores=[], guides=[];
@@ -692,7 +691,6 @@ function armed(btn, label, action){
 function startBlank(){ adopt(blankState(state.owner)); renderSetup(); renderMatrix(); persist(); $("owner").value=state.owner; $("saved-banner").hidden=true; toast("Blank matrix ready. Bring in your Interaction Matrix or choose your primary SDG."); }
 $("start-blank-banner").addEventListener("click", startBlank);
 armed($("start-blank"), "Click again to erase everything", startBlank);
-armed($("show-example"), "Click again to replace your work", ()=>{ adopt(exampleState()); renderSetup(); renderMatrix(); persist(); $("owner").value=state.owner; $("saved-banner").hidden=true; toast("Showing the worked example. Use New blank matrix to start your own."); });
 armed($("clear-marks"), "Click again to clear all scores", ()=>{ S.fill(0); for (let i=0;i<N;i++) for (let j=0;j<N;j++) paint(i,j); updateCounts(); persist(); toast("All scores cleared. Agents, SDGs and interactions are unchanged."); });
 $("import-browser").addEventListener("click", ()=>{ const d=browserInteraction(); if (!d || !importInteraction(d, "your Interaction Matrix")) toast("Your Interaction Matrix couldn't be read. Use Open work file with its saved file instead."); });
 

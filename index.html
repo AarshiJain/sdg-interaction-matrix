@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="app-build" content="9bf4f1a687">
+<meta name="app-build" content="2e78547b45">
 <script>
 (function(){
   var cur=(document.querySelector('meta[name="app-build"]')||{}).content;
@@ -229,7 +229,6 @@ table.mini{border-collapse:collapse;font:400 12.5px var(--f-mono);font-variant-n
         <span class="sep" aria-hidden="true"></span>
         <button class="btn" id="clear-marks" type="button">Clear marks</button>
         <button class="btn" id="start-blank" type="button">New blank matrix</button>
-        <button class="btn" id="show-example" type="button">Worked example</button>
       </div>
     </div>
     <div class="mode" hidden>
@@ -284,7 +283,7 @@ const SDG_LIST = [
   [16,"Peace, Justice and Strong Institutions","#00689D"],[17,"Partnerships for the Goals","#19486A"]];
 const STEEP = [["S","Social"],["T","Technological"],["Ec","Economic"],["En","Environmental"],["P","Political"]];
 const UNSET = "#9AA3AF";
-const KEY = "sdg-interaction-matrix-v3";   // v3: everyone starts with a blank matrix (Nov 17)
+const KEY = "sdg-interaction-matrix-v3";   // v3: one-time refresh for everyone (Nov 17)
 const LOCK_MODE = "column";   // set to "mirror", "column" or "pick" to fix the color rule
 
 const $ = id => document.getElementById(id);
@@ -410,7 +409,7 @@ let restored=false, restoredAt=0;
 (function load(){
   let s = null;
   try { s = JSON.parse(localStorage.getItem(KEY) || "null"); } catch(e) { s = null; }
-  if (valid(s)) { adopt(s); restored = !s.example; restoredAt = +s.savedAt || 0; } else adopt(blankState(""));   // first visit: a blank matrix
+  if (valid(s)) { adopt(s); restored = !s.example; restoredAt = +s.savedAt || 0; } else adopt(exampleState());
 })();
 function snapshot(){
   const marks=[]; for (let i=0;i<N;i++) for (let j=i+1;j<N;j++) if (M[i*N+j]) marks.push([i,j]);
@@ -611,7 +610,6 @@ function armed(btn, label, action){
 function startBlank(){ adopt(blankState(state.owner)); renderSetup(); renderMatrix(); persist(); $("owner").value=state.owner; toast("Blank matrix ready. Start by choosing your primary SDG."); $("sdg-0").focus(); }
 $("start-blank-banner").addEventListener("click", startBlank);
 armed($("start-blank"), "Click again to erase everything", startBlank);
-armed($("show-example"), "Click again to replace your work", ()=>{ adopt(exampleState()); renderSetup(); renderMatrix(); persist(); $("owner").value=state.owner; $("saved-banner").hidden=true; toast("Showing the worked example. Use New blank matrix to start your own."); });
 armed($("clear-marks"), "Click again to clear all marks", ()=>{ M.fill(0); C.fill(0); cellEls.forEach(c=>c.classList.remove("on")); updateCounts(); persist(); toast("All marks cleared. Agents and SDGs are unchanged."); });
 
 /* ---- Files ---- */
