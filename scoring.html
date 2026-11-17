@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="app-build" content="62df7d2d06">
+<meta name="app-build" content="27cdf74dc4">
 <script>
 (function(){
   var cur=(document.querySelector('meta[name="app-build"]')||{}).content;
@@ -215,7 +215,7 @@ table.mini{border-collapse:collapse;font:400 12.5px var(--f-mono);font-variant-n
     <span><b>3</b>Read the summaries, then export</span>
   </div>
 
-  <div class="banner" id="import-banner" hidden>
+  <div class="banner" id="import-banner">
     <span><strong>Start from your Interaction Matrix.</strong> Upload the JSON, CSV or PNG you exported from it, or drop the file anywhere on this page. Its SDGs, agents and interactions fill in for you, so you only score what you already found.</span>
     <div class="toolbar">
       <button class="btn primary" id="upload-im" type="button">Upload Interaction Matrix</button>
@@ -642,7 +642,7 @@ function updateCounts(){
     `<span><b>${d.pairNet>0?"+"+d.pairNet:d.pairNet}</b>net score of all pairs</span>`;
   renderDist(d); renderSdgNet(d); renderAgents(d);
   $("example-banner").hidden = !state.example;
-  $("import-banner").hidden = !(state.example || (d.scored===0 && d.guides===0));
+  $("import-banner").hidden = false;   // upload stays available at all times
   $("import-browser").hidden = !browserInteraction();
 }
 function renderDist(d){
