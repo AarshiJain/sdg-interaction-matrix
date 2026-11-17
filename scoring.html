@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="app-build" content="1ffea2033f">
+<meta name="app-build" content="62df7d2d06">
 <script>
 (function(){
   var cur=(document.querySelector('meta[name="app-build"]')||{}).content;
@@ -121,7 +121,7 @@ thead .s0 .v,thead .s1 .v,thead .s2 .v{font:600 10px var(--f-cond);letter-spacin
 .c:not(.d):not(.pos):not(.neg):not(.tp):hover{background:var(--hover)}
 .c.pos{background:var(--pos);color:var(--on-score)}
 .c.tp{background:var(--top);color:var(--on-score)}
-.c.g.pos,.c.g.neg,.c.g.tp{box-shadow:inset 0 0 0 2px var(--hit)}
+.c.g.pos,.c.g.neg,.c.g.tp{box-shadow:inset 0 0 0 1.5px var(--hit)}
 .c.neg{background:var(--neg);color:var(--on-score)}
 .c.g:not(.pos):not(.neg):not(.tp)::after{content:"";position:absolute;left:50%;top:50%;width:6px;height:6px;margin:-3px 0 0 -3px;border-radius:50%;border:1.5px solid var(--guide)}
 .c:focus{outline:2px solid var(--accent);outline-offset:-2px;z-index:2}
@@ -252,6 +252,7 @@ table.mini{border-collapse:collapse;font:400 12.5px var(--f-mono);font-variant-n
         <span class="sep" aria-hidden="true"></span>
         <button class="btn" id="clear-marks" type="button">Clear scores</button>
         <button class="btn" id="start-blank" type="button">New blank matrix</button>
+        <button class="btn" id="show-example" type="button">Worked example</button>
       </div>
     </div>
     <div class="mx-layout">
@@ -322,8 +323,8 @@ const SCALE = [
   {v:-3, name:"Cancelling",    def:"Interaction with one agent threatens or prevents the other agent from being achieved"}];
 const COLS = [-3,-2,-1,1,2,3];
 const UNSET = "#9AA3AF";
-const KEY = "sdg-scoring-matrix-v3";   // v3: mirrored scores, fresh start
-const IM_KEY = "sdg-interaction-matrix-v2";
+const KEY = "sdg-scoring-matrix-v4";   // v4: everyone starts with a blank matrix (Nov 17)
+const IM_KEY = "sdg-interaction-matrix-v3";
 
 const $ = id => document.getElementById(id);
 const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
@@ -453,7 +454,7 @@ let restored=false, restoredAt=0;
 (function load(){
   let s = null;
   try { s = JSON.parse(localStorage.getItem(KEY) || "null"); } catch(e) { s = null; }
-  if (valid(s)) { adopt(s); restored = !s.example; restoredAt = +s.savedAt || 0; } else adopt(exampleState());
+  if (valid(s)) { adopt(s); restored = !s.example; restoredAt = +s.savedAt || 0; } else adopt(blankState(""));   // first visit: a blank matrix
 })();
 function snapshot(){
   const scores=[], guides=[];
@@ -461,6 +462,7 @@ function snapshot(){
   return { app:"sdg-scoring-matrix", version:1, savedAt:Date.now(), example:state.example, owner:state.owner, sdgs:state.sdgs, agents:state.agents, scores, guides };
 }
 let saveT; function persist(){ clearTimeout(saveT); saveT = setTimeout(()=>{ try{ localStorage.setItem(KEY, JSON.stringify(snapshot())); }catch(e){} }, 250); }
+window.addEventListener("pagehide", ()=>{ if (saveT){ clearTimeout(saveT); try{ localStorage.setItem(KEY, JSON.stringify(snapshot())); }catch(e){} } });   // save on close
 
 let toastT; function toast(msg){ const t=$("toast"); t.textContent=msg; t.hidden=false; clearTimeout(toastT); toastT=setTimeout(()=>t.hidden=true, 3400); }
 
@@ -690,6 +692,7 @@ function armed(btn, label, action){
 function startBlank(){ adopt(blankState(state.owner)); renderSetup(); renderMatrix(); persist(); $("owner").value=state.owner; $("saved-banner").hidden=true; toast("Blank matrix ready. Bring in your Interaction Matrix or choose your primary SDG."); }
 $("start-blank-banner").addEventListener("click", startBlank);
 armed($("start-blank"), "Click again to erase everything", startBlank);
+armed($("show-example"), "Click again to replace your work", ()=>{ adopt(exampleState()); renderSetup(); renderMatrix(); persist(); $("owner").value=state.owner; $("saved-banner").hidden=true; toast("Showing the worked example. Use New blank matrix to start your own."); });
 armed($("clear-marks"), "Click again to clear all scores", ()=>{ S.fill(0); for (let i=0;i<N;i++) for (let j=0;j<N;j++) paint(i,j); updateCounts(); persist(); toast("All scores cleared. Agents, SDGs and interactions are unchanged."); });
 $("import-browser").addEventListener("click", ()=>{ const d=browserInteraction(); if (!d || !importInteraction(d, "your Interaction Matrix")) toast("Your Interaction Matrix couldn't be read. Use Open work file with its saved file instead."); });
 
@@ -781,7 +784,7 @@ function drawPNG(){
     x.fillText(fit(x,agentName(i),nameW-14), leftX+steepW+colorW+piW+8, y+cs*0.66);
     for (let j=0;j<N;j++){ const cx=gridX+j*cs, v=S[i*N+j];
       if (i===j){ x.fillStyle=diag; x.fillRect(cx,y,cs,cs); }
-      else if (v){ x.fillStyle=v===3?top:v>0?pos:neg; x.fillRect(cx,y,cs,cs); if (G[i*N+j]){ x.strokeStyle=ink; x.lineWidth=2; x.strokeRect(cx+1.5,y+1.5,cs-3,cs-3); } x.fillStyle="#FFFFFF"; x.font=`600 11px ${mono}`; x.textAlign="center"; x.fillText(fmt(v), cx+cs/2, y+cs*0.66); x.textAlign="left"; } }
+      else if (v){ x.fillStyle=v===3?top:v>0?pos:neg; x.fillRect(cx,y,cs,cs); if (G[i*N+j]){ x.strokeStyle=ink; x.lineWidth=1.5; x.strokeRect(cx+1.25,y+1.25,cs-2.5,cs-2.5); } x.fillStyle="#FFFFFF"; x.font=`600 11px ${mono}`; x.textAlign="center"; x.fillText(fmt(v), cx+cs/2, y+cs*0.66); x.textAlign="left"; } }
     x.font=`400 12px ${mono}`; x.textAlign="center";
     COLS.forEach((v,c)=>{ x.fillStyle=d.cnt[i][c]?ink:"#A8B0BC"; x.fillText(String(d.cnt[i][c]), cntX+c*cntW+cntW/2, y+cs*0.66); });
     x.font=`600 12px ${mono}`; x.fillStyle=d.net[i]>0?pos:d.net[i]<0?neg:ink; x.fillText((d.net[i]>0?"+":"")+d.net[i], cntX+6*cntW+netW/2, y+cs*0.66);
